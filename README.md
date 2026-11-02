@@ -130,7 +130,7 @@ scripts/gen_vectors.py              由 JSON 生成 vectors_gen_test.mbt
 
 ## 和 mooncred 的差别
 
-检索 `moon search cose` 与 `moon search rfc9052` 时，最接近的已发布包是 [`moonbitstack/mooncred@0.6.7`](https://mooncakes.io/docs/moonbitstack/mooncred) 的 `cose` 子包（Apache-2.0）。它的文档写明覆盖 `COSE_Sign1`、`COSE_Mac0`、`COSE_Encrypt0` 和 CWT，并服务于 JWT / JWK / X.509。
+检索时，最接近的已发布包是 [`moonbitstack/mooncred@0.6.7`](https://mooncakes.io/docs/moonbitstack/mooncred) 的 `cose` 子包（Apache-2.0）。它的文档写明覆盖 `COSE_Sign1`、`COSE_Mac0`、`COSE_Encrypt0` 和 CWT，并服务于 JWT / JWK / X.509。
 
 | 能力 | moon-cose | mooncred `cose` |
 | --- | --- | --- |
