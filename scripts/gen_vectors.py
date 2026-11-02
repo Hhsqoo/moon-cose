@@ -29,12 +29,24 @@ DIRS = [
     "eddsa-examples",
     "ecdsa-examples",
     "mac0-tests",
+    "mac-tests",
     "hmac-examples",
     "encrypted-tests",
+    "enveloped-tests",
     "aes-gcm-examples",
+    "aes-ccm-examples",
+    "aes-wrap-examples",
+    "chacha-poly-examples",
 ]
 
-SUPPORTED_ALGS = {-7, -8, 5, 1, 3}
+CONTENT_ALGS = {
+    -7, -8, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 24, 30, 31, 32, 33,
+    "ES256", "EdDSA", "HS256", "HS256/64", "HS384", "HS512",
+    "A128GCM", "A192GCM", "A256GCM", "ChaCha-Poly1305", "ChaCha20/Poly1305",
+    "AES-CCM-16-128/64", "AES-CCM-16-256/64", "AES-CCM-64-128/64", "AES-CCM-64-256/64",
+    "AES-CCM-16-128/128", "AES-CCM-16-256/128", "AES-CCM-64-128/128", "AES-CCM-64-256/128",
+}
+RECIPIENT_ALGS = {-6, -3, -4, -5, "direct", "A128KW", "A192KW", "A256KW"}
 CURVE = {"Ed25519": 6, "Ed448": 7, "P-256": 1, "P-384": 2, "P-521": 3}
 
 
@@ -171,8 +183,12 @@ def kind_of(data):
         return "sign", inp["sign"]
     if "mac0" in inp:
         return "mac0", inp["mac0"]
+    if "mac" in inp:
+        return "mac", inp["mac"]
     if "encrypted" in inp:
         return "encrypt0", inp["encrypted"]
+    if "enveloped" in inp:
+        return "encrypt", inp["enveloped"]
     return None, None
 
 
@@ -195,21 +211,34 @@ def primary_key(obj, kind):
 
 def supported(alg, key):
     kty, crv, _d, x, _y, k = key
-    if isinstance(alg, int) and alg not in SUPPORTED_ALGS:
-        return False
-    if isinstance(alg, str) and alg not in ("ES256", "EdDSA", "HS256", "A128GCM", "A256GCM"):
+    if alg not in CONTENT_ALGS:
         return False
     if alg in (-8, "EdDSA") and crv != "Ed25519":
         return False
     if alg in (-7, "ES256") and crv != "P-256":
         return False
-    if alg in (1, "A128GCM") and len(k) != 32:
+    if alg in (1, "A128GCM") and k and len(k) != 32:
         return False
-    if alg in (3, "A256GCM") and len(k) != 64:
+    if alg in (2, "A192GCM") and k and len(k) != 48:
         return False
-    if alg in (5, "HS256") and kty != "oct":
+    if alg in (3, "A256GCM", 24, "ChaCha-Poly1305", "ChaCha20/Poly1305") and k and len(k) != 64:
+        return False
+    if alg in (4, 5, 6, 7, "HS256", "HS256/64", "HS384", "HS512") and kty != "oct":
         return False
     if kty == "OKP" and crv == "Ed25519" and len(x) != 64:
+        return False
+    return True
+
+
+def supported_recipient(alg, key):
+    _kty, _crv, _d, _x, _y, k = key
+    if alg not in RECIPIENT_ALGS:
+        return False
+    if alg in (-3, "A128KW") and len(k) != 32:
+        return False
+    if alg in (-4, "A192KW") and len(k) != 48:
+        return False
+    if alg in (-5, "A256KW") and len(k) != 64:
         return False
     return True
 
@@ -237,24 +266,84 @@ def crypto_ok(kind, data, obj, key, aad, parsed):
             + bstr(payload)
         )
         return verify_sig(kty, crv, x, y, sig, tbs)
-    if kind == "mac0":
+    if kind in ("mac0", "mac"):
         payload = arr[2][1] if arr[2][0] == "b" else b""
         tag = arr[3][1]
-        tbs = bytes([0x84]) + tstr("MAC0") + bstr(prot) + bstr(aad) + bstr(payload)
-        digest = hmac.new(bytes.fromhex(k), tbs, hashlib.sha256).digest()
+        context = "MAC0" if kind == "mac0" else "MAC"
+        tbs = bytes([0x84]) + tstr(context) + bstr(prot) + bstr(aad) + bstr(payload)
+        digest = mac_digest(message_alg(kind, parsed), cek_bytes(data, k), tbs)
         return digest == tag
-    if kind == "encrypt0":
+    if kind in ("encrypt0", "encrypt"):
         unprot = arr[1][1]
         ct = arr[2][1] if arr[2][0] == "b" else b""
-        iv_item = map_get(unprot, 5)
-        if iv_item is None or iv_item[0] != "b":
+        context = "Encrypt0" if kind == "encrypt0" else "Encrypt"
+        iv = iv_bytes(data, obj, unprot)
+        if iv is None:
             return False
-        aad_bytes = bytes([0x83]) + tstr("Encrypt0") + bstr(prot) + bstr(aad)
-        try:
-            pt = AESGCM(bytes.fromhex(k)).decrypt(iv_item[1], ct, aad_bytes)
-        except Exception:
-            return False
-        return pt == data["input"]["plaintext"].encode()
+        aad_bytes = bytes([0x83]) + tstr(context) + bstr(prot) + bstr(aad)
+        return aead_open(
+            message_alg(kind, parsed),
+            cek_bytes(data, k),
+            iv,
+            aad_bytes,
+            ct,
+            data["input"]["plaintext"].encode(),
+        )
+    return False
+
+
+def cek_bytes(data, k_hex):
+    inter = data.get("intermediates") or {}
+    if inter.get("CEK_hex"):
+        return bytes.fromhex(inter["CEK_hex"])
+    return bytes.fromhex(k_hex)
+
+
+def iv_bytes(data, obj, unprot):
+    item = map_get(unprot, 5)
+    if item is not None and item[0] == "b":
+        return item[1]
+    unsent = (obj.get("unsent") or {}).get("IV_hex")
+    if unsent:
+        return bytes.fromhex(unsent)
+    return None
+
+
+def mac_digest(alg, key, tbs):
+    if alg in (4, "HS256/64"):
+        return hmac.new(key, tbs, hashlib.sha256).digest()[:8]
+    if alg in (5, "HS256"):
+        return hmac.new(key, tbs, hashlib.sha256).digest()
+    if alg in (6, "HS384"):
+        return hmac.new(key, tbs, hashlib.sha384).digest()
+    if alg in (7, "HS512"):
+        return hmac.new(key, tbs, hashlib.sha512).digest()
+    return None
+
+
+def aead_open(alg, key, iv, aad, ct, plaintext):
+    from cryptography.hazmat.primitives.ciphers.aead import AESCCM, ChaCha20Poly1305
+
+    try:
+        if alg in (1, 2, 3, "A128GCM", "A192GCM", "A256GCM"):
+            return AESGCM(key).decrypt(iv, ct, aad) == plaintext
+        if alg in (24, "ChaCha-Poly1305", "ChaCha20/Poly1305"):
+            return ChaCha20Poly1305(key).decrypt(iv, ct, aad) == plaintext
+        tag_len = 8 if alg in (
+            10, 11, 12, 13,
+            "AES-CCM-16-128/64", "AES-CCM-16-256/64",
+            "AES-CCM-64-128/64", "AES-CCM-64-256/64",
+        ) else 16
+        if alg in (
+            10, 11, 12, 13, 30, 31, 32, 33,
+            "AES-CCM-16-128/64", "AES-CCM-16-256/64",
+            "AES-CCM-64-128/64", "AES-CCM-64-256/64",
+            "AES-CCM-16-128/128", "AES-CCM-16-256/128",
+            "AES-CCM-64-128/128", "AES-CCM-64-256/128",
+        ):
+            return AESCCM(key, tag_length=tag_len).decrypt(iv, ct, aad) == plaintext
+    except Exception:
+        return False
     return False
 
 
@@ -275,6 +364,32 @@ def verify_sig(kty, crv, x, y, sig, tbs):
     except (InvalidSignature, Exception):
         return False
     return False
+
+
+def recipient_alg(kind, parsed):
+    if kind not in ("mac", "encrypt"):
+        return -6
+    index = 4 if kind == "mac" else 3
+    row = parsed[1][index][1][0][1]
+    prot = row[0][1]
+    unprot = row[1][1]
+    alg = alg_of(parse(prot)[1]) if prot else None
+    if alg is None:
+        alg = alg_of(unprot)
+    return alg
+
+
+def base_iv_hex(obj):
+    unsent = (obj.get("unsent") or {}).get("IV_hex")
+    partial = (obj.get("unprotected") or {}).get("partialIV_hex")
+    if not unsent or not partial:
+        return ""
+    full = bytearray.fromhex(unsent)
+    part = bytes.fromhex(partial)
+    start = len(full) - len(part)
+    for i, byte in enumerate(part):
+        full[start + i] ^= byte
+    return full.hex()
 
 
 def message_alg(kind, parsed):
@@ -322,7 +437,13 @@ def main():
             parsed = parse(cbor)
             alg = message_alg(kind, parsed)
             aad = bytes.fromhex(external_of(obj)) if external_of(obj) else b""
-            if not supported(alg, key):
+            if kind in ("mac", "encrypt"):
+                usable = alg in CONTENT_ALGS and supported_recipient(
+                    recipient_alg(kind, parsed), key
+                )
+            else:
+                usable = supported(alg, key)
+            if not usable:
                 expect = "unsupported"
             elif data.get("fail"):
                 expect = "err"
@@ -347,6 +468,7 @@ def main():
                     "x_hex": x,
                     "y_hex": y,
                     "k_hex": k,
+                    "base_iv_hex": base_iv_hex(obj),
                 }
             )
     out = os.path.join(ROOT, "vectors_gen_test.mbt")
@@ -381,6 +503,7 @@ def render(cases):
         "  x_hex : String",
         "  y_hex : String",
         "  k_hex : String",
+        "  base_iv_hex : String",
         "}",
         "",
         "///|",
@@ -401,7 +524,7 @@ def render(cases):
             lines.append(f"      {field}: {moon_string(case[field])},")
         lines.append(f"      kty: {moon_string(case['kty'])},")
         lines.append(f"      crv: {case['crv']},")
-        for field in ("d_hex", "x_hex", "y_hex", "k_hex"):
+        for field in ("d_hex", "x_hex", "y_hex", "k_hex", "base_iv_hex"):
             lines.append(f"      {field}: {moon_string(case[field])},")
         lines.append("    },")
     lines.append("  ]")

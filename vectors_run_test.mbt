@@ -10,7 +10,15 @@ fn vec_bytes(hex_text : String) -> Bytes {
 ///|
 fn vec_key(case : VecCase) -> @cose.CoseKey {
   if case.kty == "oct" {
-    @cose.CoseKey::Sym(@cose.SymKey::new(vec_bytes(case.k_hex)))
+    let base = if case.base_iv_hex.length() == 0 {
+      None
+    } else {
+      Some(vec_bytes(case.base_iv_hex))
+    }
+    @cose.CoseKey::Sym({
+      ..@cose.SymKey::new(vec_bytes(case.k_hex)),
+      base_iv: base,
+    })
   } else if case.kty == "OKP" {
     let d = if case.d_hex.length() == 0 {
       None
@@ -82,6 +90,20 @@ fn vec_outcome(case : VecCase) -> String {
           abort("\{case.category}/\{case.name} plaintext mismatch")
         }
       }
+      "mac" => {
+        let msg = @cose.Mac::decode(raw)
+        msg.verify(aad, key)
+        if vec_payload_text(msg.payload) != case.plaintext {
+          abort("\{case.category}/\{case.name} payload mismatch")
+        }
+      }
+      "encrypt" => {
+        let msg = @cose.Encrypt::decode(raw)
+        let pt = msg.decrypt(aad, key)
+        if @utf8.decode_lossy(pt) != case.plaintext {
+          abort("\{case.category}/\{case.name} plaintext mismatch")
+        }
+      }
       _ => abort("unknown kind \{case.kind}")
     }
     "ok"
@@ -118,9 +140,9 @@ test "cose-wg examples for supported structures" {
       }
     }
   }
-  assert_eq(cases.length(), 60)
-  assert_eq(ok, 18)
-  assert_eq(err, 18)
-  assert_eq(unsupported, 20)
-  assert_eq(inconsistent, 4)
+  assert_eq(cases.length(), 123)
+  assert_eq(ok, 63)
+  assert_eq(err, 28)
+  assert_eq(unsupported, 26)
+  assert_eq(inconsistent, 6)
 }
