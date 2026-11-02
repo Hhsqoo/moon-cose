@@ -194,7 +194,14 @@ pub extend Protected with Eq::{not_equal}
 ///|
 pub fn Protected::from_header(header : Header) -> Protected raise CoseError {
   header.check_crit()
-  { raw: header.encode(), header, }
+  let encoded = header.encode()
+  // RFC 9052 allows either `h''` or `h'a0'` for an empty header map.
+  // Creation uses the zero-length form so it matches the cose-wg examples.
+  if encoded.length() == 1 && encoded[0] == b'\xa0' {
+    { raw: bytes_empty(), header, }
+  } else {
+    { raw: encoded, header, }
+  }
 }
 
 ///|

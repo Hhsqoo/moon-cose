@@ -25,6 +25,18 @@ fn bytes_empty() -> Bytes {
 }
 
 ///|
+fn bytes_concat(a : Bytes, b : Bytes) -> Bytes {
+  let out = Array::make(a.length() + b.length(), b'\x00')
+  for i = 0; i < a.length(); i = i + 1 {
+    out[i] = a[i]
+  }
+  for i = 0; i < b.length(); i = i + 1 {
+    out[a.length() + i] = b[i]
+  }
+  Bytes::from_array(out)
+}
+
+///|
 fn decode_cbor(bytes : Bytes) -> @cbor.CborValue raise CoseError {
   @cbor.decode(bytes) catch {
     err => raise MalformedCbor(err.to_string())
