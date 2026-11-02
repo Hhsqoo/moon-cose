@@ -5,9 +5,26 @@
 pub(all) enum CoseAlg {
   ES256
   EdDSA
+  HMAC_256_64
   HMAC_256_256
+  HMAC_384_384
+  HMAC_512_512
   A128GCM
+  A192GCM
   A256GCM
+  ChaCha20Poly1305
+  Direct
+  A128KW
+  A192KW
+  A256KW
+  AesCcm16_64_128
+  AesCcm16_64_256
+  AesCcm64_64_128
+  AesCcm64_64_256
+  AesCcm16_128_128
+  AesCcm16_128_256
+  AesCcm64_128_128
+  AesCcm64_128_256
   Int(Int32)
   Text(String)
 } derive(Eq)
@@ -25,9 +42,44 @@ pub fn CoseAlg::normalize(self : CoseAlg) -> CoseAlg {
   match self {
     CoseAlg::Int(-7) | CoseAlg::Text("ES256") => CoseAlg::ES256
     CoseAlg::Int(-8) | CoseAlg::Text("EdDSA") => CoseAlg::EdDSA
+    CoseAlg::Int(4) | CoseAlg::Text("HS256/64") => CoseAlg::HMAC_256_64
     CoseAlg::Int(5) | CoseAlg::Text("HS256") => CoseAlg::HMAC_256_256
+    CoseAlg::Int(6) | CoseAlg::Text("HS384") => CoseAlg::HMAC_384_384
+    CoseAlg::Int(7) | CoseAlg::Text("HS512") => CoseAlg::HMAC_512_512
     CoseAlg::Int(1) | CoseAlg::Text("A128GCM") => CoseAlg::A128GCM
+    CoseAlg::Int(2) | CoseAlg::Text("A192GCM") => CoseAlg::A192GCM
     CoseAlg::Int(3) | CoseAlg::Text("A256GCM") => CoseAlg::A256GCM
+    CoseAlg::Int(24)
+    | CoseAlg::Text("ChaCha20/Poly1305")
+    | CoseAlg::Text("ChaCha-Poly1305") => CoseAlg::ChaCha20Poly1305
+    CoseAlg::Int(-6) | CoseAlg::Text("direct") => CoseAlg::Direct
+    CoseAlg::Int(-3) | CoseAlg::Text("A128KW") => CoseAlg::A128KW
+    CoseAlg::Int(-4) | CoseAlg::Text("A192KW") => CoseAlg::A192KW
+    CoseAlg::Int(-5) | CoseAlg::Text("A256KW") => CoseAlg::A256KW
+    CoseAlg::Int(10)
+    | CoseAlg::Text("AES-CCM-16-64-128")
+    | CoseAlg::Text("AES-CCM-16-128/64") => CoseAlg::AesCcm16_64_128
+    CoseAlg::Int(11)
+    | CoseAlg::Text("AES-CCM-16-64-256")
+    | CoseAlg::Text("AES-CCM-16-256/64") => CoseAlg::AesCcm16_64_256
+    CoseAlg::Int(12)
+    | CoseAlg::Text("AES-CCM-64-64-128")
+    | CoseAlg::Text("AES-CCM-64-128/64") => CoseAlg::AesCcm64_64_128
+    CoseAlg::Int(13)
+    | CoseAlg::Text("AES-CCM-64-64-256")
+    | CoseAlg::Text("AES-CCM-64-256/64") => CoseAlg::AesCcm64_64_256
+    CoseAlg::Int(30)
+    | CoseAlg::Text("AES-CCM-16-128-128")
+    | CoseAlg::Text("AES-CCM-16-128/128") => CoseAlg::AesCcm16_128_128
+    CoseAlg::Int(31)
+    | CoseAlg::Text("AES-CCM-16-128-256")
+    | CoseAlg::Text("AES-CCM-16-256/128") => CoseAlg::AesCcm16_128_256
+    CoseAlg::Int(32)
+    | CoseAlg::Text("AES-CCM-64-128-128")
+    | CoseAlg::Text("AES-CCM-64-128/128") => CoseAlg::AesCcm64_128_128
+    CoseAlg::Int(33)
+    | CoseAlg::Text("AES-CCM-64-128-256")
+    | CoseAlg::Text("AES-CCM-64-256/128") => CoseAlg::AesCcm64_128_256
     other => other
   }
 }
@@ -37,9 +89,26 @@ pub fn CoseAlg::to_cbor(self : CoseAlg) -> @cbor.CborValue {
   match self.normalize() {
     CoseAlg::ES256 => @cbor.Integer(-7L)
     CoseAlg::EdDSA => @cbor.Integer(-8L)
+    CoseAlg::HMAC_256_64 => @cbor.Integer(4L)
     CoseAlg::HMAC_256_256 => @cbor.Integer(5L)
+    CoseAlg::HMAC_384_384 => @cbor.Integer(6L)
+    CoseAlg::HMAC_512_512 => @cbor.Integer(7L)
     CoseAlg::A128GCM => @cbor.Integer(1L)
+    CoseAlg::A192GCM => @cbor.Integer(2L)
     CoseAlg::A256GCM => @cbor.Integer(3L)
+    CoseAlg::ChaCha20Poly1305 => @cbor.Integer(24L)
+    CoseAlg::Direct => @cbor.Integer(-6L)
+    CoseAlg::A128KW => @cbor.Integer(-3L)
+    CoseAlg::A192KW => @cbor.Integer(-4L)
+    CoseAlg::A256KW => @cbor.Integer(-5L)
+    CoseAlg::AesCcm16_64_128 => @cbor.Integer(10L)
+    CoseAlg::AesCcm16_64_256 => @cbor.Integer(11L)
+    CoseAlg::AesCcm64_64_128 => @cbor.Integer(12L)
+    CoseAlg::AesCcm64_64_256 => @cbor.Integer(13L)
+    CoseAlg::AesCcm16_128_128 => @cbor.Integer(30L)
+    CoseAlg::AesCcm16_128_256 => @cbor.Integer(31L)
+    CoseAlg::AesCcm64_128_128 => @cbor.Integer(32L)
+    CoseAlg::AesCcm64_128_256 => @cbor.Integer(33L)
     CoseAlg::Int(n) => @cbor.Integer(n.to_int64())
     CoseAlg::Text(s) => @cbor.Text(s)
   }
@@ -65,9 +134,26 @@ pub fn CoseAlg::name(self : CoseAlg) -> String {
   match self.normalize() {
     CoseAlg::ES256 => "ES256"
     CoseAlg::EdDSA => "EdDSA"
+    CoseAlg::HMAC_256_64 => "HS256/64"
     CoseAlg::HMAC_256_256 => "HS256"
+    CoseAlg::HMAC_384_384 => "HS384"
+    CoseAlg::HMAC_512_512 => "HS512"
     CoseAlg::A128GCM => "A128GCM"
+    CoseAlg::A192GCM => "A192GCM"
     CoseAlg::A256GCM => "A256GCM"
+    CoseAlg::ChaCha20Poly1305 => "ChaCha20/Poly1305"
+    CoseAlg::Direct => "direct"
+    CoseAlg::A128KW => "A128KW"
+    CoseAlg::A192KW => "A192KW"
+    CoseAlg::A256KW => "A256KW"
+    CoseAlg::AesCcm16_64_128 => "AES-CCM-16-128/64"
+    CoseAlg::AesCcm16_64_256 => "AES-CCM-16-256/64"
+    CoseAlg::AesCcm64_64_128 => "AES-CCM-64-128/64"
+    CoseAlg::AesCcm64_64_256 => "AES-CCM-64-256/64"
+    CoseAlg::AesCcm16_128_128 => "AES-CCM-16-128/128"
+    CoseAlg::AesCcm16_128_256 => "AES-CCM-16-256/128"
+    CoseAlg::AesCcm64_128_128 => "AES-CCM-64-128/128"
+    CoseAlg::AesCcm64_128_256 => "AES-CCM-64-256/128"
     CoseAlg::Int(n) => "int(\{n})"
     CoseAlg::Text(s) => s
   }

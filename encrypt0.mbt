@@ -18,27 +18,7 @@ pub extend Encrypt0 with Eq::{not_equal}
 
 ///|
 fn encrypt_alg(msg : Encrypt0) -> CoseAlg raise CoseError {
-  let alg = resolve_alg(msg.protected_header.header, msg.unprotected)
-  match alg.normalize() {
-    CoseAlg::A128GCM | CoseAlg::A256GCM => alg
-    other => raise UnsupportedAlg(other.name())
-  }
-}
-
-///|
-fn gcm_key(alg : CoseAlg, key : CoseKey) -> Bytes raise CoseError {
-  let raw = symmetric_key(key)
-  match alg.normalize() {
-    CoseAlg::A128GCM => {
-      require_len(raw, 16, "A128GCM key")
-      raw
-    }
-    CoseAlg::A256GCM => {
-      require_len(raw, 32, "A256GCM key")
-      raw
-    }
-    other => raise UnsupportedAlg(other.name())
-  }
+  resolve_alg(msg.protected_header.header, msg.unprotected)
 }
 
 ///|
@@ -59,11 +39,11 @@ pub fn Encrypt0::encrypt(
   }
   let alg = encrypt_alg(draft)
   check_key_alg(key.algorithm(), alg)
-  let iv = resolve_iv(prot.header, unprotected)
+  let iv = resolve_iv(alg, prot.header, unprotected, key.base_iv())
   let aad = enc_structure("Encrypt0", prot.raw, external_aad)
   {
     ..draft,
-    ciphertext: Some(gcm_seal(gcm_key(alg, key), iv, aad, plaintext)),
+    ciphertext: Some(content_seal(alg, symmetric_key(key), iv, aad, plaintext)),
   }
 }
 
@@ -101,10 +81,15 @@ pub fn Encrypt0::decrypt(
 ) -> Bytes raise CoseError {
   let alg = encrypt_alg(self)
   check_key_alg(key.algorithm(), alg)
-  let iv = resolve_iv(self.protected_header.header, self.unprotected)
+  let iv = resolve_iv(
+    alg,
+    self.protected_header.header,
+    self.unprotected,
+    key.base_iv(),
+  )
   let aad = enc_structure("Encrypt0", self.protected_header.raw, external_aad)
   match self.ciphertext {
     None => raise DecryptionFailed
-    Some(ct) => gcm_open(gcm_key(alg, key), iv, aad, ct)
+    Some(ct) => content_open(alg, symmetric_key(key), iv, aad, ct)
   }
 }

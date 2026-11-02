@@ -74,6 +74,24 @@ pub extend CoseKey with Eq::{equal}
 pub extend CoseKey with Eq::{not_equal}
 
 ///|
+pub fn CoseKey::kid(self : CoseKey) -> Bytes? {
+  match self {
+    CoseKey::Okp(key) => key.kid
+    CoseKey::Ec2(key) => key.kid
+    CoseKey::Sym(key) => key.kid
+  }
+}
+
+///|
+pub fn CoseKey::base_iv(self : CoseKey) -> Bytes? {
+  match self {
+    CoseKey::Okp(key) => key.base_iv
+    CoseKey::Ec2(key) => key.base_iv
+    CoseKey::Sym(key) => key.base_iv
+  }
+}
+
+///|
 pub fn CoseKey::algorithm(self : CoseKey) -> CoseAlg? {
   match self {
     CoseKey::Okp(key) => key.alg
