@@ -1,0 +1,20 @@
+moon-cose
+Copyright 2026 Hhsqoo
+
+This product includes a design port of message structures from google/coset
+(https://github.com/google/coset), licensed under the Apache License 2.0.
+The port covers COSE header maps, Sig_structure, MAC_structure, Enc_structure,
+and the tagged array layout of COSE_Sign1, COSE_Sign, COSE_Mac0, and
+COSE_Encrypt0. Cryptography and CBOR encoding are not taken from coset.
+
+This product depends on 2515050242/cbor 0.1.2
+(https://github.com/2515050242/moonbit-cbor-RFC-8949-CBOR-Concise-Binary-Object-Representation),
+licensed under the Apache License 2.0.
+
+This product depends on cc06b/mooncry 0.95.0
+(https://github.com/cc06b/mooncry), licensed under the Apache License 2.0.
+Ed25519, ECDSA P-256, HMAC-SHA-256, and AES-GCM are called from that library.
+
+Test vectors under testdata/cose-wg/ are from cose-wg/Examples
+(https://github.com/cose-wg/Examples), dedicated to the public domain under
+the Unlicense. See testdata/cose-wg/UNLICENSE.
