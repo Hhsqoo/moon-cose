@@ -4,7 +4,7 @@
 
 - 仓库：https://github.com/google/coset
 - 许可证：Apache-2.0
-- 移植范围：COSE 头图（protected bstr / unprotected map）、常见 label、`Sig_structure` / `MAC_structure` / `Enc_structure` 的数组布局，以及 `COSE_Sign1`、`COSE_Sign`、`COSE_Mac0`、`COSE_Encrypt0` 的 tagged / untagged CBOR 数组。
+- 移植范围：COSE 头图、常见 label、`Sig_structure` / `MAC_structure` / `Enc_structure`，以及 `COSE_Sign1`、`COSE_Sign`、`COSE_Mac0`、`COSE_Mac`、`COSE_Encrypt0`、`COSE_Encrypt` 和 `COSE_recipient` 的 tagged / untagged 数组。direct 与 AES Key Wrap 的 recipient 语义按 RFC 9052 / RFC 9053，不复制 coset 源码。
 - 未移植：coset 的 Rust API、计数器签名、recipient、与 `ciborium` 绑定的编解码实现。密码学原语不来自 coset。
 
 ## 2515050242/cbor
@@ -21,13 +21,14 @@
 - 包：`cc06b/mooncry@0.95.0`
 - 仓库：https://github.com/cc06b/mooncry
 - 许可证：Apache-2.0
-- 用途：Ed25519、ECDSA P-256（SHA-256，原始 `r || s`）、HMAC-SHA-256、AES-GCM。
-- 本仓库没有重写这些原语。接入前用下列向量核对过 0.95.0，没有发现偏差：
-  - RFC 8032 Ed25519 测试 1（空消息）和测试 2（单字节 `0x72`）
-  - RFC 4231 HMAC-SHA-256 用例 1 和 2
-  - RFC 6979 A.2.5 ECDSA P-256 + SHA-256，消息 `"sample"`，签名为 64 字节 `r || s`
-  - NIST SP 800-38D AES-128-GCM（60 字节明文、AAD）以及一组 AES-256-GCM
-- 已知边界：`aes_gcm_*` 只接受 12 字节 IV。COSE 的 partial IV 只做头字段保存，不在库内展开。
+- 用途：Ed25519、ECDSA P-256（SHA-256，原始 `r || s`）、HMAC-SHA-256/384/512、AES-GCM、AES-KW、AES-CCM、ChaCha20-Poly1305、HKDF-SHA-256（尚未接到 COSE KDF）。
+- 本仓库没有重写这些原语。接入前用下列向量核对过 0.95.0：
+  - RFC 8032 Ed25519 测试 1 和测试 2
+  - RFC 4231 HMAC-SHA-256 用例 1 和 2，以及 HMAC-SHA-384 / HMAC-SHA-512 用例 1（与 Python hashlib 一致）
+  - RFC 6979 A.2.5 ECDSA P-256 + SHA-256
+  - NIST SP 800-38D AES-128-GCM，以及一组 AES-256-GCM
+- 没有公开的 P-384 / P-521 ECDSA，也没有单独的 P-256 ECDH。因此 ES384、ES512 和 ECDH-ES + HKDF-256 未实现，而不是用错误的曲线冒充。
+- `aes_gcm_*` 与 ChaCha20-Poly1305 只接受 12 字节 nonce。AES-CCM 的 nonce 长度按 RFC 9053：`AES-CCM-16-*` 为 13 字节，`AES-CCM-64-*` 为 7 字节。partial IV 与密钥的 Base IV 按右对齐异或。
 
 ## cose-wg/Examples
 

@@ -2,7 +2,7 @@
 
 [English] COSE (RFC 9052 / RFC 9053) signing and encryption for MoonBit: Sign1, Sign, Mac0, Encrypt0, and COSE_Key, on deterministic CBOR.
 
-MoonBit 上的 COSE 签名与加密库。当前实现单层消息：`COSE_Sign1`、`COSE_Sign`、`COSE_Mac0`、`COSE_Encrypt0`，以及 `COSE_Key`。密码学调用 [mooncry](https://github.com/cc06b/mooncry)，CBOR 调用 [2515050242/cbor](https://github.com/2515050242/moonbit-cbor-RFC-8949-CBOR-Concise-Binary-Object-Representation)。
+MoonBit 上的 COSE 签名与加密库。除 `COSE_Sign1`、`COSE_Mac0`、`COSE_Encrypt0` 外，还实现多名签名者的 `COSE_Sign`，以及带 direct / AES Key Wrap recipient 的 `COSE_Mac` 和 `COSE_Encrypt`。密码学调用 [mooncry](https://github.com/cc06b/mooncry)，CBOR 调用 [2515050242/cbor](https://github.com/2515050242/moonbit-cbor-RFC-8949-CBOR-Concise-Binary-Object-Representation)。
 
 ## 安装
 
@@ -71,9 +71,10 @@ decoded.verify(b"", key)
 | --- | --- | --- |
 | COSE_Sign1 | EdDSA (Ed25519, -8)、ES256 (-7) | 18 |
 | COSE_Sign | 同上，可多名签名者 | 98 |
-| COSE_Mac0 | HMAC 256/256 (5) | 17 |
-| COSE_Encrypt0 | A128GCM (1)、A256GCM (3) | 16 |
-| COSE_Key | OKP (kty 1, Ed25519 crv 6)、EC2 (kty 2, P-256 crv 1)、Symmetric (kty 4) | 无 |
+| COSE_Mac0 / COSE_Mac | HMAC 256/64 (4)、256/256 (5)、384/384 (6)、512/512 (7) | 17 / 97 |
+| COSE_Encrypt0 / COSE_Encrypt | A128GCM (1)、A192GCM (2)、A256GCM (3)、ChaCha20/Poly1305 (24)、AES-CCM 八个参数组 (10–13、30–33) | 16 / 96 |
+| recipient | direct (-6)、A128KW (-3)、A192KW (-4)、A256KW (-5) | 无 |
+| COSE_Key | OKP (kty 1, Ed25519 crv 6)、EC2 (kty 2, P-256 crv 1)、Symmetric (kty 4)，含 Base IV | 无 |
 
 头 label：alg (1)、crit (2)、content type (3)、kid (4)、IV (5)、partial IV (6)。`crit` 里出现 1–6 以外的 label 会拒绝。创建空 protected 头时编码为零长度 bstr（`h''`）；解码同时接受 `h''` 和 `h'a0'`。
 
@@ -81,7 +82,7 @@ ES256 签名是 RFC 9053 的 64 字节 `r || s`。本库签名使用 mooncry 的
 
 ## 测试
 
-`moon test --target native` 当前 20 项全部通过。其中一项遍历 60 条 cose-wg 向量。
+`moon test --target native` 当前 26 项全部通过。其中一项遍历 123 条 cose-wg 向量。
 
 | 目录 | 执行 | 验签/解密通过 | 失败向量被拒绝 | 不支持的算法被拒绝 | 与规范不一致的示例被拒绝 |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -90,14 +91,19 @@ ES256 签名是 RFC 9053 的 64 字节 `r || s`。本库签名使用 mooncry 的
 | eddsa-examples | 4 | 2 | 0 | 2 | 0 |
 | ecdsa-examples | 8 | 2 | 0 | 6 | 0 |
 | mac0-tests | 10 | 3 | 4 | 2 | 1 |
-| hmac-examples（仅 Mac0） | 5 | 1 | 1 | 3 | 0 |
+| mac-tests | 10 | 3 | 4 | 2 | 1 |
+| hmac-examples | 10 | 8 | 2 | 0 | 0 |
 | encrypted-tests | 10 | 3 | 4 | 2 | 1 |
-| aes-gcm-examples（仅 Encrypt0） | 4 | 2 | 1 | 1 | 0 |
-| 合计 | 60 | 18 | 18 | 20 | 4 |
+| enveloped-tests | 10 | 3 | 4 | 2 | 1 |
+| aes-gcm-examples | 9 | 7 | 2 | 0 | 0 |
+| aes-ccm-examples | 16 | 16 | 0 | 0 | 0 |
+| aes-wrap-examples | 15 | 9 | 0 | 6 | 0 |
+| chacha-poly-examples | 2 | 2 | 0 | 0 | 0 |
+| 合计 | 123 | 63 | 28 | 26 | 6 |
 
 另外四项目录里还有 10 个 JSON（`hmac-examples` 的 COSE_Mac、`aes-gcm-examples` 的 enveloped）随仓库保存，不在上表中执行。
 
-四条「与规范不一致」的示例是 `sign1-tests/sign-pass-01`、`sign-tests/sign-pass-01`、`mac0-tests/mac-pass-01`、`encrypted-tests/enc-pass-01`。消息里的 protected 桶被改成了 `h'A0'`，但签名、MAC 或 GCM 是对零长度 protected bstr 计算的。按 RFC 9052，受保护头以原始字节进入结构，因此这些消息必须失败。测试断言库拒绝它们。
+六条「与规范不一致」的示例是 `sign1-tests/sign-pass-01`、`sign-tests/sign-pass-01`、`mac0-tests/mac-pass-01`、`mac-tests/mac-pass-01`、`encrypted-tests/enc-pass-01`、`enveloped-tests/env-pass-01`。消息里的 protected 桶被改成了 `h'A0'`，但签名、MAC 或 GCM 是对零长度 protected bstr 计算的。按 RFC 9052，受保护头以原始字节进入结构，因此这些消息必须失败。测试断言库拒绝它们。
 
 密码学自测（RFC 8032、RFC 4231、RFC 6979、NIST SP 800-38D）在 `crypto_vectors_test.mbt`。
 
@@ -117,17 +123,28 @@ scripts/gen_vectors.py              由 JSON 生成 vectors_gen_test.mbt
 
 ## 尚未覆盖
 
-- `COSE_Encrypt` / `COSE_Mac`、recipient、直接密钥以外的密钥协商与包裹
-- Ed448、ES384、ES512、HMAC-384/512、HMAC-256/64、A192GCM、AES-CCM、ChaCha20-Poly1305
-- partial IV 与 Base IV 的拼接；GCM 只接受 12 字节 IV
-- 计数器签名
+- ECDH-ES / ECDH-SS、HKDF 密钥派生、AES-CBC-MAC。mooncry 0.95.0 没有公开的 P-384、P-521 ECDSA，也没有单独的 P-256 ECDH 接口，因此 ES384、ES512 和 ECDH-ES + HKDF-256 未在本仓库实现
+- 计数器签名、嵌套 recipient
 - 非规范 CBOR（由所用 CBOR 库拒绝）
+- `aes-gcm-05` 的消息只携带 partial IV。官方 JSON 的密钥没有 Base IV；测试用未发送的完整 IV 反推 Base IV `89F52F65A1C5809300000000`，再按右对齐异或还原 nonce
 
-## 和已有 MoonBit 包的差别
+## 和 mooncred 的差别
 
- 检索时，功能最接近的已发布包是 [`moonbitstack/mooncred@0.6.7`](https://mooncakes.io/docs/moonbitstack/mooncred) 里的 `cose` 子包（Apache-2.0）。它的文档写明覆盖 `COSE_Sign1`、`COSE_Mac0`、`COSE_Encrypt0` 和 CWT，并服务于 JWT / JWK / X.509 凭证栈。
+检索 `moon search cose` 与 `moon search rfc9052` 时，最接近的已发布包是 [`moonbitstack/mooncred@0.6.7`](https://mooncakes.io/docs/moonbitstack/mooncred) 的 `cose` 子包（Apache-2.0）。它的文档写明覆盖 `COSE_Sign1`、`COSE_Mac0`、`COSE_Encrypt0` 和 CWT，并服务于 JWT / JWK / X.509。
 
-本仓库是独立的 COSE 消息库，不实现 CWT 或 JOSE。相对该子包，这里额外提供多名签名者的 `COSE_Sign`、OKP / EC2 / Symmetric 的 `COSE_Key` 编解码，以及按 cose-wg/Examples 逐条执行的 60 个向量。密码学与 CBOR 分别来自 mooncry 和 `2515050242/cbor`，不来自 mooncred。
+| 能力 | moon-cose | mooncred `cose` |
+| --- | --- | --- |
+| COSE_Sign1 / Mac0 / Encrypt0 | 有 | 有 |
+| 多名签名者的 COSE_Sign | 有 | 文档未列 |
+| 带 recipient 的 COSE_Mac、COSE_Encrypt | 有，direct 与 A128/A192/A256KW | 文档未列 |
+| COSE_Key（OKP / EC2 / Symmetric，含 Base IV） | 有 | 文档未列 |
+| HMAC 256/64、384/384、512/512 | 有 | 未作为独立 COSE 算法表列出 |
+| A192GCM、ChaCha20-Poly1305、AES-CCM 八个参数组 | 有 | 文档未列 |
+| partial IV 与 Base IV 右对齐异或 | 有 | 文档未列 |
+| CWT / JOSE | 无 | 有 |
+| ECDH-ES + HKDF、ES384 / ES512 | 无。mooncry 0.95.0 没有公开的 P-384 / P-521 ECDSA，也没有可直接调用的 P-256 ECDH | 不在其 COSE 文档范围内 |
+
+本库不实现 CWT。密码学与 CBOR 分别来自 mooncry 和 `2515050242/cbor`。
 
 ## 来源与许可证
 

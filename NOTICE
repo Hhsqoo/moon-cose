@@ -13,7 +13,9 @@ licensed under the Apache License 2.0.
 
 This product depends on cc06b/mooncry 0.95.0
 (https://github.com/cc06b/mooncry), licensed under the Apache License 2.0.
-Ed25519, ECDSA P-256, HMAC-SHA-256, and AES-GCM are called from that library.
+Ed25519, ECDSA P-256, HMAC-SHA-256/384/512, AES-GCM, AES-KW, AES-CCM, and
+ChaCha20-Poly1305 are called from that library. P-384, P-521, and ECDH are
+not exposed by that version and are not reimplemented here.
 
 Test vectors under testdata/cose-wg/ are from cose-wg/Examples
 (https://github.com/cose-wg/Examples), dedicated to the public domain under
