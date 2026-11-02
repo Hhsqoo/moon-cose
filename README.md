@@ -123,6 +123,12 @@ scripts/gen_vectors.py              由 JSON 生成 vectors_gen_test.mbt
 - 计数器签名
 - 非规范 CBOR（由所用 CBOR 库拒绝）
 
+## 和已有 MoonBit 包的差别
+
+2026-11-02 用 `moon search cose` 与 `moon search rfc9052` 检索时，功能最接近的已发布包是 [`moonbitstack/mooncred@0.6.7`](https://mooncakes.io/docs/moonbitstack/mooncred) 里的 `cose` 子包（Apache-2.0）。它的文档写明覆盖 `COSE_Sign1`、`COSE_Mac0`、`COSE_Encrypt0` 和 CWT，并服务于 JWT / JWK / X.509 凭证栈。
+
+本仓库是独立的 COSE 消息库，不实现 CWT 或 JOSE。相对该子包，这里额外提供多名签名者的 `COSE_Sign`、OKP / EC2 / Symmetric 的 `COSE_Key` 编解码，以及按 cose-wg/Examples 逐条执行的 60 个向量。密码学与 CBOR 分别来自 mooncry 和 `2515050242/cbor`，不来自 mooncred。
+
 ## 来源与许可证
 
 本库 Apache-2.0。来源、许可证和移植范围见 [NOTICE](NOTICE) 与 [docs/source-attribution.md](docs/source-attribution.md)。

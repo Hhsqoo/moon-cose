@@ -16,8 +16,10 @@ jobs:
       - name: Toolchain
         run: moon version --all
       - name: Check
-        run: moon check --target native
+        run: moon check --deny-warn --target native
+      - name: Build
+        run: moon build --target native
       - name: Test
-        run: moon test --target native
+        run: moon test --deny-warn --target native
       - name: Format
         run: moon fmt --check
