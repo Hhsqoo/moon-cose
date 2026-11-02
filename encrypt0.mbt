@@ -6,7 +6,7 @@ pub(all) struct Encrypt0 {
   protected_header : Protected
   unprotected : Header
   ciphertext : Bytes?
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Encrypt0 with Eq::{equal}

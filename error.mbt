@@ -7,7 +7,7 @@ pub(all) suberror CoseError {
   VerificationFailed
   DecryptionFailed
   MalformedCbor(String)
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend CoseError with Eq::{equal}
@@ -16,6 +16,9 @@ pub extend CoseError with Eq::{equal}
 #deprecated("Use `!=` instead", skip_current_package=true)
 #doc(hidden)
 pub extend CoseError with Eq::{not_equal}
+
+///|
+pub extend CoseError with Show::{to_string, output}
 
 ///|
 pub impl Show for CoseError with fn output(self, logger) {

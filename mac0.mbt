@@ -6,7 +6,7 @@ pub(all) struct Mac0 {
   unprotected : Header
   payload : Bytes?
   tag : Bytes
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Mac0 with Eq::{equal}

@@ -50,11 +50,3 @@ fn int_from_i64(v : Int64) -> Int32 raise CoseError {
   }
   v.to_int()
 }
-
-///|
-fn cbor_is_null(value : @cbor.CborValue) -> Bool {
-  match value {
-    @cbor.Simple(22) => true
-    _ => false
-  }
-}

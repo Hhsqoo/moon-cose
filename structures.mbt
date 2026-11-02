@@ -43,14 +43,14 @@ pub fn sig_structure(
 /// `MAC_structure` from RFC 9052. `context` is `"MAC0"` or `"MAC"`.
 pub fn mac_structure(
   context : String,
-  protected : Bytes,
+  prot : Bytes,
   external_aad : Bytes,
   payload : Bytes,
 ) -> Bytes {
   @cbor.encode(
     @cbor.Array([
       text_cbor(context),
-      bstr_cbor(protected),
+      bstr_cbor(prot),
       bstr_cbor(external_aad),
       bstr_cbor(payload),
     ]),
@@ -62,15 +62,11 @@ pub fn mac_structure(
 /// `context` is `"Encrypt0"` or `"Encrypt"`.
 pub fn enc_structure(
   context : String,
-  protected : Bytes,
+  prot : Bytes,
   external_aad : Bytes,
 ) -> Bytes {
   @cbor.encode(
-    @cbor.Array([
-      text_cbor(context),
-      bstr_cbor(protected),
-      bstr_cbor(external_aad),
-    ]),
+    @cbor.Array([text_cbor(context), bstr_cbor(prot), bstr_cbor(external_aad)]),
   )
 }
 

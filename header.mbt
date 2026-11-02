@@ -12,7 +12,7 @@ pub(all) struct Header {
   iv : Bytes?
   partial_iv : Bytes?
   rest : Array[(Label, @cbor.CborValue)]
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Header with Eq::{equal}
@@ -181,7 +181,7 @@ pub fn Header::encode(self : Header) -> Bytes {
 pub(all) struct Protected {
   raw : Bytes
   header : Header
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Protected with Eq::{equal}

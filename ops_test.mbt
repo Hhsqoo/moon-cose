@@ -68,13 +68,13 @@ test "COSE_Key round trip for OKP, EC2, and symmetric" {
     kid: Some(hex("3131")),
     alg: Some(@cose.EdDSA),
   })
-  assert_eq(@cose.CoseKey::decode(okp.encode()), okp)
+  assert_true(@cose.CoseKey::decode(okp.encode()) == okp)
   let ec2 = p256_key()
-  assert_eq(@cose.CoseKey::decode(ec2.encode()), ec2)
+  assert_true(@cose.CoseKey::decode(ec2.encode()) == ec2)
   let sym = @cose.CoseKey::Sym(
     @cose.SymKey::new(hex("849b57219dae48de646d07dbb533566e")),
   )
-  assert_eq(@cose.CoseKey::decode(sym.encode()), sym)
+  assert_true(@cose.CoseKey::decode(sym.encode()) == sym)
 }
 
 ///|
@@ -147,17 +147,17 @@ test "Sign1 tamper, alg mismatch, and malformed input" {
     ed25519_key(),
   )
   let bad_sig : @cose.Sign1 = { ..msg, signature: flip_last(msg.signature), }
-  expect_error("verify", fn() { bad_sig.verify(b"", ed25519_key()) })
+  expect_error("verify", () => bad_sig.verify(b"", ed25519_key()))
   let bad_payload : @cose.Sign1 = {
     ..msg,
     payload: Some(@utf8.encode("tampered")),
   }
-  expect_error("verify", fn() { bad_payload.verify(b"", ed25519_key()) })
+  expect_error("verify", () => bad_payload.verify(b"", ed25519_key()))
   let bad_prot : @cose.Sign1 = {
     ..msg,
     protected_header: @cose.Protected::from_raw(hex("a201270300")),
   }
-  expect_error("verify", fn() { bad_prot.verify(b"", ed25519_key()) })
+  expect_error("verify", () => bad_prot.verify(b"", ed25519_key()))
   let mismatched = @cose.CoseKey::Okp({
     ..@cose.OkpKey::ed25519(
       hex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"),
@@ -167,7 +167,7 @@ test "Sign1 tamper, alg mismatch, and malformed input" {
     ),
     alg: Some(@cose.ES256),
   })
-  expect_error("mismatch", fn() {
+  expect_error("mismatch", () => {
     ignore(
       @cose.Sign1::sign(
         @cose.Header::with_alg(@cose.EdDSA),
@@ -178,8 +178,8 @@ test "Sign1 tamper, alg mismatch, and malformed input" {
       ),
     )
   })
-  expect_error("cbor", fn() { ignore(@cose.Sign1::decode(hex("ff"))) })
-  expect_error("structure", fn() {
+  expect_error("cbor", () => ignore(@cose.Sign1::decode(hex("ff"))))
+  expect_error("structure", () => {
     ignore(
       @cose.Sign1::decode(
         hex(
@@ -241,7 +241,7 @@ test "Mac0 HMAC-256 verifies external AAD and rejects a flipped tag" {
   )
   message.verify(aad, key)
   let bad : @cose.Mac0 = { ..message, tag: flip_last(message.tag), }
-  expect_error("verify", fn() { bad.verify(aad, key) })
+  expect_error("verify", () => bad.verify(aad, key))
   let prot = @cose.Header::with_alg(@cose.HMAC_256_256)
   let ours = @cose.Mac0::mac(
     prot,
@@ -255,7 +255,7 @@ test "Mac0 HMAC-256 verifies external AAD and rejects a flipped tag" {
     ..ours,
     payload: Some(@utf8.encode("other")),
   }
-  expect_error("verify", fn() { bad_payload.verify(b"", key) })
+  expect_error("verify", () => bad_payload.verify(b"", key))
 }
 
 ///|
@@ -279,7 +279,7 @@ test "Encrypt0 A128GCM decrypts enc-pass-02 and round trips A256GCM" {
     ..message,
     ciphertext: Some(flip_last(original)),
   }
-  expect_error("decrypt", fn() { ignore(bad.decrypt(aad, key128)) })
+  expect_error("decrypt", () => ignore(bad.decrypt(aad, key128)))
   let key256 = @cose.CoseKey::Sym(
     @cose.SymKey::new(
       hex("0f1e2d3c4b5a69788796a5b4c3d2e1f01f2e3d4c5b6a798897a6b5c4d3e2f100"),
@@ -289,18 +289,18 @@ test "Encrypt0 A128GCM decrypts enc-pass-02 and round trips A256GCM" {
     ..@cose.Header::empty(),
     iv: Some(hex("02d1f7e6f26c43d4868d87ce")),
   }
-  let sealed = @cose.Encrypt0::encrypt(
+  let boxed = @cose.Encrypt0::encrypt(
     @cose.Header::with_alg(@cose.A256GCM),
     unprot,
     @utf8.encode("round trip"),
     b"",
     key256,
   )
-  let opened = sealed.decrypt(b"", key256)
+  let opened = boxed.decrypt(b"", key256)
   assert_eq(@utf8.decode_lossy(opened), "round trip")
   let wrong : @cose.CoseKey = @cose.CoseKey::Sym({
     ..@cose.SymKey::new(hex("849b57219dae48de646d07dbb533566e")),
     alg: Some(@cose.A128GCM),
   })
-  expect_error("mismatch", fn() { ignore(sealed.decrypt(b"", wrong)) })
+  expect_error("mismatch", () => ignore(boxed.decrypt(b"", wrong)))
 }

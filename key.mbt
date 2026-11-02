@@ -8,7 +8,7 @@ pub(all) struct OkpKey {
   alg : CoseAlg?
   key_ops : Array[Int32]
   base_iv : Bytes?
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend OkpKey with Eq::{equal}
@@ -30,7 +30,7 @@ pub(all) struct Ec2Key {
   alg : CoseAlg?
   key_ops : Array[Int32]
   base_iv : Bytes?
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Ec2Key with Eq::{equal}
@@ -48,7 +48,7 @@ pub(all) struct SymKey {
   alg : CoseAlg?
   key_ops : Array[Int32]
   base_iv : Bytes?
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend SymKey with Eq::{equal}
@@ -63,7 +63,7 @@ pub(all) enum CoseKey {
   Okp(OkpKey)
   Ec2(Ec2Key)
   Sym(SymKey)
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend CoseKey with Eq::{equal}
@@ -98,7 +98,7 @@ pub fn SymKey::new(k : Bytes) -> SymKey {
 }
 
 ///|
-struct KeyParts {
+priv struct KeyParts {
   kty : Int32?
   kid : Bytes?
   alg : CoseAlg?

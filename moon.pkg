@@ -1,6 +1,9 @@
 import {
   "2515050242/cbor",
   "cc06b/mooncry/lib",
+}
+
+import {
   "moonbitlang/core/encoding/hex",
   "moonbitlang/core/encoding/utf8",
-}
+} for "test"

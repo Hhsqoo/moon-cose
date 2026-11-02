@@ -10,7 +10,7 @@ pub(all) enum CoseAlg {
   A256GCM
   Int(Int32)
   Text(String)
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend CoseAlg with Eq::{equal}
@@ -78,7 +78,7 @@ pub fn CoseAlg::name(self : CoseAlg) -> String {
 pub(all) enum Label {
   Int(Int32)
   Text(String)
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Label with Eq::{equal}
@@ -124,7 +124,7 @@ fn label_is_known(label : Label) -> Bool {
 pub(all) enum ContentType {
   Int(Int32)
   Text(String)
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend ContentType with Eq::{equal}

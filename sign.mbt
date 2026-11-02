@@ -4,7 +4,7 @@ pub(all) struct Signer {
   protected_header : Protected
   unprotected : Header
   signature : Bytes
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Signer with Eq::{equal}
@@ -30,7 +30,7 @@ pub(all) struct Sign {
   unprotected : Header
   payload : Bytes?
   signatures : Array[Signer]
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Sign with Eq::{equal}

@@ -6,7 +6,7 @@ pub(all) struct Sign1 {
   unprotected : Header
   payload : Bytes?
   signature : Bytes
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 pub extend Sign1 with Eq::{equal}
