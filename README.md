@@ -23,6 +23,16 @@ moon run --target native cmd/main
 
 `cmd/main` 对一段 CBOR 负载做 EdDSA `COSE_Sign1` 签名并验签，再做 HMAC-256/256 的 Mac0 和 A256GCM 的 Encrypt0 往返。
 
+另外三个示例都使用本期已经实现的算法：
+
+```sh
+moon run --target native cmd/webauthn
+moon run --target native cmd/multi_sign
+moon run --target native cmd/encrypt_recipients
+```
+
+`cmd/webauthn` 把 ES256 和 EdDSA 公钥编成 COSE_Key，再验对应的 Sign1。`cmd/multi_sign` 用 EdDSA 和 ES256 两个签名者签同一段负载。`cmd/encrypt_recipients` 用两把 A128KW 密钥包装同一把内容密钥，并分别解密。
+
 库内签名一条文本：
 
 ```moonbit
@@ -82,7 +92,7 @@ ES256 签名是 RFC 9053 的 64 字节 `r || s`。本库签名使用 mooncry 的
 
 ## 测试
 
-`moon test --target native` 当前 26 项全部通过。其中一项遍历 123 条 cose-wg 向量。
+`moon test --target native --deny-warn` 当前 28 项全部通过。其中一项遍历 123 条 cose-wg 向量。
 
 | 目录 | 执行 | 验签/解密通过 | 失败向量被拒绝 | 不支持的算法被拒绝 | 与规范不一致的示例被拒绝 |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -101,8 +111,6 @@ ES256 签名是 RFC 9053 的 64 字节 `r || s`。本库签名使用 mooncry 的
 | chacha-poly-examples | 2 | 2 | 0 | 0 | 0 |
 | 合计 | 123 | 63 | 28 | 26 | 6 |
 
-另外四项目录里还有 10 个 JSON（`hmac-examples` 的 COSE_Mac、`aes-gcm-examples` 的 enveloped）随仓库保存，不在上表中执行。
-
 六条「与规范不一致」的示例是 `sign1-tests/sign-pass-01`、`sign-tests/sign-pass-01`、`mac0-tests/mac-pass-01`、`mac-tests/mac-pass-01`、`encrypted-tests/enc-pass-01`、`enveloped-tests/env-pass-01`。消息里的 protected 桶被改成了 `h'A0'`，但签名、MAC 或 GCM 是对零长度 protected bstr 计算的。按 RFC 9052，受保护头以原始字节进入结构，因此这些消息必须失败。测试断言库拒绝它们。
 
 密码学自测（RFC 8032、RFC 4231、RFC 6979、NIST SP 800-38D）在 `crypto_vectors_test.mbt`。
@@ -115,8 +123,8 @@ ES256 签名是 RFC 9053 的 64 字节 `r || s`。本库签名使用 mooncry 的
 alg.mbt header.mbt structures.mbt   算法、头、Sig/MAC/Enc 结构
 key.mbt                             COSE_Key
 crypto_ops.mbt                      调用 mooncry 的签名、MAC、GCM
-sign1.mbt sign.mbt mac0.mbt encrypt0.mbt
-cmd/main                            可运行示例
+sign1.mbt sign.mbt mac0.mbt mac.mbt encrypt0.mbt encrypt.mbt
+cmd/main cmd/webauthn cmd/multi_sign cmd/encrypt_recipients
 testdata/cose-wg                    cose-wg/Examples
 scripts/gen_vectors.py              由 JSON 生成 vectors_gen_test.mbt
 ```

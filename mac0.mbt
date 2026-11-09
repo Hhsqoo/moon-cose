@@ -17,6 +17,7 @@ pub extend Mac0 with Eq::{equal}
 pub extend Mac0 with Eq::{not_equal}
 
 ///|
+/// Compute a MAC with one key and no recipients.
 pub fn Mac0::mac(
   protected_header : Header,
   unprotected : Header,
@@ -44,6 +45,7 @@ pub fn Mac0::mac(
 }
 
 ///|
+/// Decode a tagged (17) or untagged COSE_Mac0 array.
 pub fn Mac0::decode(bytes : Bytes) -> Mac0 raise CoseError {
   let (tagged, items) = decode_message(bytes, 17UL, 4, "COSE_Mac0")
   let raw = cbor_bstr_field(items[0], "protected header")
@@ -57,6 +59,7 @@ pub fn Mac0::decode(bytes : Bytes) -> Mac0 raise CoseError {
 }
 
 ///|
+/// Encode this COSE_Mac0, using tag 17 when `tagged` is true.
 pub fn Mac0::encode(self : Mac0) -> Bytes {
   encode_tagged(17UL, self.tagged, [
     @cbor.Bytes(self.protected_header.raw),
@@ -67,6 +70,7 @@ pub fn Mac0::encode(self : Mac0) -> Bytes {
 }
 
 ///|
+/// Check the tag over MAC_structure.
 pub fn Mac0::verify(
   self : Mac0,
   external_aad : Bytes,

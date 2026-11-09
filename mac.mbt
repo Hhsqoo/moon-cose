@@ -18,6 +18,7 @@ pub extend Mac with Eq::{equal}
 pub extend Mac with Eq::{not_equal}
 
 ///|
+/// Decode a tagged (97) or untagged COSE_Mac array.
 pub fn Mac::decode(bytes : Bytes) -> Mac raise CoseError {
   let (tagged, items) = decode_message(bytes, 97UL, 5, "COSE_Mac")
   let raw = cbor_bstr_field(items[0], "protected header")
@@ -32,6 +33,7 @@ pub fn Mac::decode(bytes : Bytes) -> Mac raise CoseError {
 }
 
 ///|
+/// Encode this COSE_Mac, using tag 97 when `tagged` is true.
 pub fn Mac::encode(self : Mac) -> Bytes {
   encode_tagged(97UL, self.tagged, [
     @cbor.Bytes(self.protected_header.raw),
@@ -43,6 +45,7 @@ pub fn Mac::encode(self : Mac) -> Bytes {
 }
 
 ///|
+/// Check the tag after unwrapping the content key from a matching recipient.
 pub fn Mac::verify(
   self : Mac,
   external_aad : Bytes,

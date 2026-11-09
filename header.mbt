@@ -23,6 +23,7 @@ pub extend Header with Eq::{equal}
 pub extend Header with Eq::{not_equal}
 
 ///|
+/// A header map with no fields.
 pub fn Header::empty() -> Header {
   {
     alg: None,
@@ -36,11 +37,13 @@ pub fn Header::empty() -> Header {
 }
 
 ///|
+/// An otherwise empty header whose alg is `alg`.
 pub fn Header::with_alg(alg : CoseAlg) -> Header {
   { ..Header::empty(), alg: Some(alg.normalize()), }
 }
 
 ///|
+/// Reject a crit list that contains a label this library does not understand.
 pub fn Header::check_crit(self : Header) -> Unit raise CoseError {
   for i = 0; i < self.crit.length(); i = i + 1 {
     let label = self.crit[i]
@@ -72,6 +75,7 @@ fn seen_label(seen : Array[Label], label : Label) -> Bool {
 }
 
 ///|
+/// Read a header map. Duplicate labels are an error.
 pub fn Header::from_cbor(value : @cbor.CborValue) -> Header raise CoseError {
   match value {
     @cbor.Map(pairs) => {
@@ -134,6 +138,7 @@ fn crit_from_cbor(value : @cbor.CborValue) -> Array[Label] raise CoseError {
 }
 
 ///|
+/// Build the CBOR map for this header. The encoder sorts keys.
 pub fn Header::to_cbor(self : Header) -> @cbor.CborValue {
   let pairs : Array[(@cbor.CborValue, @cbor.CborValue)] = []
   match self.alg {
@@ -192,6 +197,7 @@ pub extend Protected with Eq::{equal}
 pub extend Protected with Eq::{not_equal}
 
 ///|
+/// Encode `header`. An empty map becomes a zero-length bstr.
 pub fn Protected::from_header(header : Header) -> Protected raise CoseError {
   header.check_crit()
   let encoded = header.encode()
@@ -205,6 +211,7 @@ pub fn Protected::from_header(header : Header) -> Protected raise CoseError {
 }
 
 ///|
+/// Keep `raw` for signing and also parse it as a header map.
 pub fn Protected::from_raw(raw : Bytes) -> Protected raise CoseError {
   if raw.length() == 0 {
     { raw, header: Header::empty(), }
@@ -215,6 +222,7 @@ pub fn Protected::from_raw(raw : Bytes) -> Protected raise CoseError {
 }
 
 ///|
+/// Read alg from the protected header, then the unprotected header. Differing values are an error.
 pub fn resolve_alg(prot : Header, unprot : Header) -> CoseAlg raise CoseError {
   match (prot.alg, unprot.alg) {
     (Some(a), Some(b)) => {

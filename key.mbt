@@ -59,6 +59,7 @@ pub extend SymKey with Eq::{equal}
 pub extend SymKey with Eq::{not_equal}
 
 ///|
+/// A COSE_Key: an octet key pair, an EC2 point, or a symmetric key.
 pub(all) enum CoseKey {
   Okp(OkpKey)
   Ec2(Ec2Key)
@@ -74,6 +75,7 @@ pub extend CoseKey with Eq::{equal}
 pub extend CoseKey with Eq::{not_equal}
 
 ///|
+/// Key identifier, when the key carries one.
 pub fn CoseKey::kid(self : CoseKey) -> Bytes? {
   match self {
     CoseKey::Okp(key) => key.kid
@@ -83,6 +85,7 @@ pub fn CoseKey::kid(self : CoseKey) -> Bytes? {
 }
 
 ///|
+/// Base IV from the key. Combined with a partial IV by right-aligned XOR.
 pub fn CoseKey::base_iv(self : CoseKey) -> Bytes? {
   match self {
     CoseKey::Okp(key) => key.base_iv
@@ -92,6 +95,7 @@ pub fn CoseKey::base_iv(self : CoseKey) -> Bytes? {
 }
 
 ///|
+/// Algorithm restriction stored on the key, if any.
 pub fn CoseKey::algorithm(self : CoseKey) -> CoseAlg? {
   match self {
     CoseKey::Okp(key) => key.alg
@@ -101,16 +105,19 @@ pub fn CoseKey::algorithm(self : CoseKey) -> CoseAlg? {
 }
 
 ///|
+/// An Ed25519 key. `d` is the 32-byte seed and may be absent for verify-only keys.
 pub fn OkpKey::ed25519(x : Bytes, d : Bytes?) -> OkpKey {
   { crv: 6, x, d, kid: None, alg: None, key_ops: [], base_iv: None, }
 }
 
 ///|
+/// A P-256 key. `d` may be absent when only verification is required.
 pub fn Ec2Key::p256(x : Bytes, y : Bytes?, d : Bytes?) -> Ec2Key {
   { crv: 1, x, y, d, kid: None, alg: None, key_ops: [], base_iv: None, }
 }
 
 ///|
+/// A symmetric key with no kid, alg, or Base IV.
 pub fn SymKey::new(k : Bytes) -> SymKey {
   { k, kid: None, alg: None, key_ops: [], base_iv: None, }
 }
@@ -161,6 +168,7 @@ fn key_ops_from_cbor(value : @cbor.CborValue) -> Array[Int32] raise CoseError {
 }
 
 ///|
+/// Read a COSE_Key map. `kty` selects OKP, EC2, or Symmetric.
 pub fn CoseKey::from_cbor(value : @cbor.CborValue) -> CoseKey raise CoseError {
   match value {
     @cbor.Map(pairs) => parts_to_key(read_key_parts(pairs))
@@ -302,6 +310,7 @@ fn push_common(
 }
 
 ///|
+/// Build a deterministic COSE_Key map.
 pub fn CoseKey::to_cbor(self : CoseKey) -> @cbor.CborValue {
   let pairs : Array[(@cbor.CborValue, @cbor.CborValue)] = []
   match self {
@@ -336,11 +345,13 @@ pub fn CoseKey::to_cbor(self : CoseKey) -> @cbor.CborValue {
 }
 
 ///|
+/// Encode this key as one CBOR data item.
 pub fn CoseKey::encode(self : CoseKey) -> Bytes {
   @cbor.encode(self.to_cbor())
 }
 
 ///|
+/// Decode one COSE_Key from CBOR bytes.
 pub fn CoseKey::decode(bytes : Bytes) -> CoseKey raise CoseError {
   CoseKey::from_cbor(decode_cbor(bytes))
 }

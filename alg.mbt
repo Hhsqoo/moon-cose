@@ -38,6 +38,7 @@ pub extend CoseAlg with Eq::{equal}
 pub extend CoseAlg with Eq::{not_equal}
 
 ///|
+/// Map integer and text aliases onto the named algorithm variants.
 pub fn CoseAlg::normalize(self : CoseAlg) -> CoseAlg {
   match self {
     CoseAlg::Int(-7) | CoseAlg::Text("ES256") => CoseAlg::ES256
@@ -85,6 +86,7 @@ pub fn CoseAlg::normalize(self : CoseAlg) -> CoseAlg {
 }
 
 ///|
+/// Encode the algorithm as its RFC 9053 integer, or as text if it has no integer form.
 pub fn CoseAlg::to_cbor(self : CoseAlg) -> @cbor.CborValue {
   match self.normalize() {
     CoseAlg::ES256 => @cbor.Integer(-7L)
@@ -115,6 +117,7 @@ pub fn CoseAlg::to_cbor(self : CoseAlg) -> @cbor.CborValue {
 }
 
 ///|
+/// Read an algorithm from a CBOR int or text string.
 pub fn CoseAlg::from_cbor(value : @cbor.CborValue) -> CoseAlg raise CoseError {
   match value {
     @cbor.Integer(n) => CoseAlg::Int(int_from_i64(n)).normalize()
@@ -130,6 +133,7 @@ pub fn CoseAlg::from_cbor(value : @cbor.CborValue) -> CoseAlg raise CoseError {
 }
 
 ///|
+/// Short name used in error messages.
 pub fn CoseAlg::name(self : CoseAlg) -> String {
   match self.normalize() {
     CoseAlg::ES256 => "ES256"
@@ -175,6 +179,7 @@ pub extend Label with Eq::{equal}
 pub extend Label with Eq::{not_equal}
 
 ///|
+/// Encode a header label as a CBOR int or text string.
 pub fn Label::to_cbor(self : Label) -> @cbor.CborValue {
   match self {
     Label::Int(n) => @cbor.Integer(n.to_int64())
@@ -183,6 +188,7 @@ pub fn Label::to_cbor(self : Label) -> @cbor.CborValue {
 }
 
 ///|
+/// Read a header label from a CBOR int or text string.
 pub fn Label::from_cbor(value : @cbor.CborValue) -> Label raise CoseError {
   match value {
     @cbor.Integer(n) => Label::Int(int_from_i64(n))

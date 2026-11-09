@@ -25,6 +25,7 @@ fn sign1_alg(msg : Sign1) -> CoseAlg raise CoseError {
 }
 
 ///|
+/// Sign `payload` with one key. `alg` must be in `protected_header`.
 pub fn Sign1::sign(
   protected_header : Header,
   unprotected : Header,
@@ -53,6 +54,7 @@ pub fn Sign1::sign(
 }
 
 ///|
+/// Decode a tagged (18) or untagged COSE_Sign1 array.
 pub fn Sign1::decode(bytes : Bytes) -> Sign1 raise CoseError {
   let (tagged, items) = decode_message(bytes, 18UL, 4, "COSE_Sign1")
   let raw = cbor_bstr_field(items[0], "protected header")
@@ -66,6 +68,7 @@ pub fn Sign1::decode(bytes : Bytes) -> Sign1 raise CoseError {
 }
 
 ///|
+/// Encode this COSE_Sign1, using tag 18 when `tagged` is true.
 pub fn Sign1::encode(self : Sign1) -> Bytes {
   encode_tagged(18UL, self.tagged, [
     @cbor.Bytes(self.protected_header.raw),
@@ -76,6 +79,7 @@ pub fn Sign1::encode(self : Sign1) -> Bytes {
 }
 
 ///|
+/// Check the signature over Sig_structure. The protected header bytes are used as stored.
 pub fn Sign1::verify(
   self : Sign1,
   external_aad : Bytes,

@@ -49,6 +49,7 @@ fn signer_alg(signer : Signer) -> CoseAlg raise CoseError {
 }
 
 ///|
+/// Sign `payload` with every signer. The body protected header is shared; each signer's alg is protected separately.
 pub fn Sign::sign(
   protected_header : Header,
   unprotected : Header,
@@ -85,6 +86,7 @@ pub fn Sign::sign(
 }
 
 ///|
+/// Decode a tagged (98) or untagged COSE_Sign array.
 pub fn Sign::decode(bytes : Bytes) -> Sign raise CoseError {
   let (tagged, items) = decode_message(bytes, 98UL, 4, "COSE_Sign")
   let raw = cbor_bstr_field(items[0], "protected header")
@@ -122,6 +124,7 @@ pub fn Sign::decode(bytes : Bytes) -> Sign raise CoseError {
 }
 
 ///|
+/// Encode this COSE_Sign, using tag 98 when `tagged` is true.
 pub fn Sign::encode(self : Sign) -> Bytes {
   let rows : Array[@cbor.CborValue] = []
   for i = 0; i < self.signatures.length(); i = i + 1 {
@@ -143,6 +146,7 @@ pub fn Sign::encode(self : Sign) -> Bytes {
 }
 
 ///|
+/// Verify one signer. `index` selects the signature; `key` must match that signer's algorithm.
 pub fn Sign::verify_signer(
   self : Sign,
   index : Int32,

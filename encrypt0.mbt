@@ -22,6 +22,7 @@ fn encrypt_alg(msg : Encrypt0) -> CoseAlg raise CoseError {
 }
 
 ///|
+/// Encrypt with one key and no recipients. The content algorithm comes from the headers.
 pub fn Encrypt0::encrypt(
   protected_header : Header,
   unprotected : Header,
@@ -48,6 +49,7 @@ pub fn Encrypt0::encrypt(
 }
 
 ///|
+/// Decode a tagged (16) or untagged COSE_Encrypt0 array.
 pub fn Encrypt0::decode(bytes : Bytes) -> Encrypt0 raise CoseError {
   let (tagged, items) = decode_message(bytes, 16UL, 3, "COSE_Encrypt0")
   let raw = cbor_bstr_field(items[0], "protected header")
@@ -65,6 +67,7 @@ pub fn Encrypt0::decode(bytes : Bytes) -> Encrypt0 raise CoseError {
 }
 
 ///|
+/// Encode this COSE_Encrypt0, using tag 16 when `tagged` is true.
 pub fn Encrypt0::encode(self : Encrypt0) -> Bytes {
   encode_tagged(16UL, self.tagged, [
     @cbor.Bytes(self.protected_header.raw),
@@ -74,6 +77,7 @@ pub fn Encrypt0::encode(self : Encrypt0) -> Bytes {
 }
 
 ///|
+/// Decrypt and check the AEAD tag. A partial IV is expanded with the key's Base IV.
 pub fn Encrypt0::decrypt(
   self : Encrypt0,
   external_aad : Bytes,
