@@ -1,0 +1,7 @@
+import {
+  "Hhsqoo/cose",
+  "2515050242/cbor",
+  "moonbitlang/core/encoding/hex",
+}
+
+pkgtype(kind: "executable")

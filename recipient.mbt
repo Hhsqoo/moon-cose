@@ -16,6 +16,13 @@ pub extend Recipient with Eq::{equal}
 pub extend Recipient with Eq::{not_equal}
 
 ///|
+/// Inputs for building one recipient. `unprotected.alg` selects direct or AES Key Wrap.
+pub(all) struct RecipientInput {
+  unprotected : Header
+  key : CoseKey
+}
+
+///|
 fn header_kid(header : Header) -> Bytes? {
   header.kid
 }

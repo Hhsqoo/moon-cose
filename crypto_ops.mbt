@@ -389,6 +389,21 @@ fn content_open(
 }
 
 ///|
+fn kw_wrap(alg : CoseAlg, kek : Bytes, cek : Bytes) -> Bytes raise CoseError {
+  let want = match alg.normalize() {
+    CoseAlg::A128KW => 16
+    CoseAlg::A192KW => 24
+    CoseAlg::A256KW => 32
+    other => raise UnsupportedAlg(other.name())
+  }
+  require_len(kek, want, alg.name())
+  if cek.length() == 0 || cek.length() % 8 != 0 {
+    raise BadStructure("content key length must be a non-zero multiple of 8")
+  }
+  @lib.aes_kw_wrap(kek, cek)
+}
+
+///|
 fn kw_unwrap(
   alg : CoseAlg,
   kek : Bytes,
