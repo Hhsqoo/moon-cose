@@ -107,6 +107,8 @@ ES256 签名是 RFC 9053 的 64 字节 `r || s`。本库签名使用 mooncry 的
 
 密码学自测（RFC 8032、RFC 4231、RFC 6979、NIST SP 800-38D）在 `crypto_vectors_test.mbt`。
 
+`aes-gcm-05` 的消息只携带 partial IV。官方 JSON 的密钥没有 Base IV；测试用未发送的完整 IV 反推 Base IV `89F52F65A1C5809300000000`，再按右对齐异或还原 nonce。
+
 ## 结构
 
 ```
@@ -121,12 +123,31 @@ scripts/gen_vectors.py              由 JSON 生成 vectors_gen_test.mbt
 
 验签路径读取消息里的 protected bstr，原样放进 `Sig_structure` / `MAC_structure` / `Enc_structure`，再交给 mooncry。AES-GCM 的 AAD 是 `Enc_structure` 的 CBOR，不是调用方的 `external_aad` 本身；`external_aad` 嵌在该结构里。
 
-## 尚未覆盖
+## 功能边界
 
-- ECDH-ES / ECDH-SS、HKDF 密钥派生、AES-CBC-MAC。mooncry 0.95.0 没有公开的 P-384、P-521 ECDSA，也没有单独的 P-256 ECDH 接口，因此 ES384、ES512 和 ECDH-ES + HKDF-256 未在本仓库实现
-- 计数器签名、嵌套 recipient
-- 非规范 CBOR（由所用 CBOR 库拒绝）
-- `aes-gcm-05` 的消息只携带 partial IV。官方 JSON 的密钥没有 Base IV；测试用未发送的完整 IV 反推 Base IV `89F52F65A1C5809300000000`，再按右对齐异或还原 nonce
+本期（2026 MoonBit 十一月黑客松）的范围以本节为准，下面三类之外的功能都不在本期计划内。
+
+**本期交付，已实现并有测试**
+
+- 全部六种 COSE 消息结构：COSE_Sign1、COSE_Sign（多名签名者）、COSE_Mac0、COSE_Mac、COSE_Encrypt0、COSE_Encrypt。
+- 单层 recipient，密钥分发方式为 direct (-6) 和 A128KW / A192KW / A256KW。
+- 签名算法 EdDSA (Ed25519)、ES256；MAC 算法 HMAC 256/64、256/256、384/384、512/512；内容加密算法 A128GCM、A192GCM、A256GCM、ChaCha20/Poly1305、AES-CCM 八个参数组。
+- COSE_Key（OKP / EC2 / Symmetric，含 Base IV），以及 partial IV 与 Base IV 的组合。
+- 用 cose-wg/Examples 的 123 条向量逐条验证，结果见“测试”一节。
+
+**本期不实现，遇到时明确报 `UnsupportedAlg`**
+
+- ES384、ES512、Ed448：依赖的 mooncry 0.95.0 没有公开 P-384 / P-521 ECDSA 和 Ed448。
+- ECDH-ES / ECDH-SS 与 HKDF 密钥派生：mooncry 0.95.0 没有单独的 ECDH 接口。
+- AES-CBC-MAC。
+- 计数器签名、多层嵌套 recipient。
+
+这些属于暂未完成，依赖库提供相应原语后可以在之后的版本补上，本期不承诺。
+
+**不做**
+
+- CWT、JOSE / JWT：不在本库范围，本库只处理 COSE 消息和 COSE_Key。
+- 非规范 CBOR：由所用 CBOR 库直接拒绝。
 
 ## 和 mooncred 的差别
 
